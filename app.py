@@ -1,35 +1,45 @@
 import streamlit as st
 import json
-import time
 import os
 import subprocess
-import threading
 import sys
 
 WORLD_FILE = "world.json"
-LOCK_FILE = "bot.lock"
+BOT_PID_FILE = "bot.pid"
 
 # =========================
 # BOT INITIALIZATION
 # =========================
 
-def start_bot():
-    """Start the bot in a separate thread"""
+def bot_running(pid: int) -> bool:
     try:
-        subprocess.Popen(["python", "bot.py"])
-    except Exception as e:
-        print(f"Error starting bot: {e}")
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
 
 @st.cache_resource
 def initialize_bot():
-    """Initialize bot only once using Streamlit's cache"""
-    if not os.path.exists(LOCK_FILE):
-        with open(LOCK_FILE, "w") as f:
-            f.write(str(time.time()))
-        
-        # Start bot in a separate thread
-        bot_thread = threading.Thread(target=start_bot, daemon=True)
-        bot_thread.start()
+    """Start the bot once and avoid duplicates across reruns."""
+    if os.path.exists(BOT_PID_FILE):
+        try:
+            with open(BOT_PID_FILE, "r") as f:
+                pid = int(f.read().strip())
+        except Exception:
+            pid = None
+
+        if pid and bot_running(pid):
+            return None
+
+        try:
+            os.remove(BOT_PID_FILE)
+        except OSError:
+            pass
+
+    proc = subprocess.Popen([sys.executable, "bot.py"])
+    with open(BOT_PID_FILE, "w") as f:
+        f.write(str(proc.pid))
+    return proc
 
 # Initialize bot on app startup
 initialize_bot()
