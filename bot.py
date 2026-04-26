@@ -272,6 +272,32 @@ async def world(ctx):
 
     await ctx.send(msg)
 
+@bot.command()
+async def factions(ctx):
+    if not ctx.guild or ctx.guild.id != LIEAND_GUILD_ID:
+        return
+
+    world = get_world(ctx.guild.id)
+
+    # Group players by faction
+    faction_members = {f: [] for f in FACTIONS}
+    for player, faction in world["players"].items():
+        faction_members[faction].append(player)
+
+    msg = "👥 **Faction Members**\n\n"
+
+    for faction in FACTIONS:
+        members = faction_members[faction]
+        if members:
+            msg += f"**{faction}** ({len(members)} members)\n"
+            for member in members:
+                msg += f"  • {member}\n"
+        else:
+            msg += f"**{faction}** (0 members)\n"
+        msg += "\n"
+
+    await ctx.send(msg)
+
 # =========================
 # ⏱️ AUTO LORE SYSTEM
 # =========================
