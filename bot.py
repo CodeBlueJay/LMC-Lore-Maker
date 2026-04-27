@@ -237,6 +237,21 @@ EVENTS:
 # =========================
 
 @bot.command()
+async def factions(ctx):
+    if not ctx.guild or ctx.guild.id != LIEAND_GUILD_ID:
+        return
+
+    world = get_world(ctx.guild.id)
+
+    msg = "🏰 **Moon Castle Faction Members**\n\n"
+    for f in FACTIONS:
+        members = [p for p, fac in world["players"].items() if fac == f]
+        member_list = ", ".join(members) if members else "No members"
+        msg += f"**{f}**: {member_list}\n"
+
+    await ctx.send(msg)
+
+@bot.command()
 async def lore(ctx):
     if not ctx.guild or ctx.guild.id != LIEAND_GUILD_ID:
         return
@@ -271,6 +286,43 @@ async def world(ctx):
         msg += f"{f}: {data['influence']} influence\n"
 
     await ctx.send(msg)
+
+@bot.command()
+async def move(ctx, player: str, *, faction: str):
+    """Move a player to a different faction. Usage: !move <player> <faction>"""
+    # Only allow the specific user
+    if ctx.author.id != TARGET_USER_ID:
+        await ctx.send("❌ You don't have permission to use this command.")
+        return
+    
+    if not ctx.guild or ctx.guild.id != LIEAND_GUILD_ID:
+        return
+
+    # Check if command is from authorized server
+    world = get_world(ctx.guild.id)
+    
+    # Normalize faction name to match case
+    faction_found = None
+    for f in FACTIONS:
+        if f.lower() == faction.lower():
+            faction_found = f
+            break
+    
+    if not faction_found:
+        factions_list = ", ".join(FACTIONS)
+        await ctx.send(f"❌ Faction not found. Available: {factions_list}")
+        return
+    
+    # Find player in world
+    if player not in world["players"]:
+        await ctx.send(f"❌ Player '{player}' not found in world.")
+        return
+    
+    old_faction = world["players"][player]
+    world["players"][player] = faction_found
+    save_worlds()
+    
+    await ctx.send(f"✅ **{player}** moved from **{old_faction}** to **{faction_found}**")
 
 # =========================
 # ⏱️ AUTO LORE SYSTEM
