@@ -234,6 +234,10 @@ async def move(ctx, player: str, *, faction: str):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
 
+    if ctx.author.id != TARGET_USER_ID:
+        await ctx.send("❌ You don't have permission to move players.")
+        return
+
     world = load_world(ctx.guild.id)
 
     if player not in world["players"]:
