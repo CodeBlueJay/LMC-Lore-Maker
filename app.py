@@ -357,10 +357,7 @@ if st.session_state.authenticated:
                 col1, col2 = st.columns([3, 1])
         
                 CHANNELS = {
-                    "🗨 general-chat": 1233621574700109928,
-                    "⚔ war": 1233621574700109929,
-                    "📜 lore": 1233621574700109930,
-                    "🔨 council-only-lounge": 1233621574700109931
+                    "🗨 general-chat": 1380499794576801822,
                 }
         
                 with col1:
