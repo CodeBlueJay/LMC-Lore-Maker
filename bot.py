@@ -218,6 +218,39 @@ async def lore(ctx):
     await send_lore_dm(lore)
 
 @bot.command()
+async def swap(ctx, player1: str, player2: str):
+    if ctx.guild.id != LIEAND_GUILD_ID:
+        return
+
+    if ctx.author.id != TARGET_USER_ID:
+        await ctx.send("❌ You don't have permission to swap players.")
+        return
+
+    world = load_world(ctx.guild.id)
+
+    if player1 not in world["players"]:
+        await ctx.send(f"❌ Player `{player1}` not found.")
+        return
+
+    if player2 not in world["players"]:
+        await ctx.send(f"❌ Player `{player2}` not found.")
+        return
+
+    faction1 = world["players"][player1]
+    faction2 = world["players"][player2]
+
+    if faction1 == faction2:
+        await ctx.send(f"❌ Both players are already in **{faction1}**.")
+        return
+
+    world["players"][player1] = faction2
+    world["players"][player2] = faction1
+    save_world(ctx.guild.id, world)
+
+    log_command(ctx.guild.id, str(ctx.author), "!swap", f"{player1} ↔ {player2}")
+    await ctx.send(f"✅ Swapped **{player1}** ({faction1}) ↔ **{player2}** ({faction2})")
+
+@bot.command()
 async def world(ctx):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
