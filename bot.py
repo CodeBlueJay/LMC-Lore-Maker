@@ -211,6 +211,20 @@ async def world(ctx):
     await ctx.send(msg)
 
 @bot.command()
+async def factions(ctx):
+    if ctx.guild.id != LIEAND_GUILD_ID:
+        return
+
+    world = load_world(ctx.guild.id)
+
+    msg = "**⚔️ Factions:**\n"
+    for f, data in world["factions"].items():
+        members = [p for p, faction in world["players"].items() if faction == f]
+        msg += f"\n**{f}** — {data['influence']} ⚡ — {len(members)} members"
+
+    await ctx.send(msg)
+
+@bot.command()
 async def move(ctx, player: str, *, faction: str):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
