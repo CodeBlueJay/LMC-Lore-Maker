@@ -5,7 +5,7 @@ from discord.ext import commands, tasks
 from groq import Groq
 from dotenv import load_dotenv
 from collections import deque
-from database import get_world, upsert_world
+from database import get_world, upsert_world, get_stats, upsert_stats, log_command, log_activity
 
 load_dotenv()
 
@@ -118,12 +118,12 @@ async def send_lore_dm(text):
 async def on_message(message):
     if message.author.bot:
         return
-
     if not message.guild or message.guild.id != LIEAND_GUILD_ID:
         return
 
     world = load_world(message.guild.id)
     buffer = get_buffer(message.guild.id)
+    stats = get_stats(message.guild.id)
 
     user = str(message.author)
     faction = assign_faction(world, user)
@@ -134,21 +134,42 @@ async def on_message(message):
     gain = max(1, len(message.content) // 25)
     add_influence(world, faction, gain)
 
+    event_type = "message"
+    if detect_war(message.content):
+        event_type = "WAR_EVENT"
+        stats["war_events"] += 1
+
+    # Update stats
+    stats["total_messages"] += 1
+    counts = stats["message_counts"]
+    counts[user] = counts.get(user, 0) + 1
+    stats["message_counts"] = counts
+
+    # Track faction influence history
+    history = stats["faction_history"]
+    history.append({
+        "faction": faction,
+        "influence": world["factions"][faction]["influence"],
+        "timestamp": str(message.created_at)
+    })
+    if len(history) > 500:
+        history = history[-500:]
+    stats["faction_history"] = history
+
     event = {
         "user": user,
         "faction": faction,
         "territory": territory["name"],
-        "content": message.content
+        "content": message.content,
+        "type": event_type
     }
-
-    if detect_war(message.content):
-        event["type"] = "WAR_EVENT"
 
     buffer.append(event)
     save_world(message.guild.id, world)
+    upsert_stats(message.guild.id, stats["total_messages"], stats["war_events"], stats["message_counts"], stats["faction_history"])
+    log_activity(message.guild.id, user, faction, territory["name"], message.content, event_type)
 
     await bot.process_commands(message)
-
 # =========================
 # GROQ LORE
 # =========================
@@ -179,7 +200,7 @@ def generate_lore(events):
 async def lore(ctx):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
-
+    log_command(ctx.guild.id, str(ctx.author), "!lore")
     world = load_world(ctx.guild.id)
     buffer = get_buffer(ctx.guild.id)
 
@@ -200,7 +221,7 @@ async def lore(ctx):
 async def world(ctx):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
-
+    log_command(ctx.guild.id, str(ctx.author), "!world")
     world = load_world(ctx.guild.id)
 
     msg = "\n".join(
@@ -214,7 +235,7 @@ async def world(ctx):
 async def factions(ctx):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
-
+    log_command(ctx.guild.id, str(ctx.author), "!factions")
     world = load_world(ctx.guild.id)
 
     msg = "**⚔️ Factions:**\n"
@@ -237,7 +258,7 @@ async def influence(ctx, amount: int, *, faction: str):
     if ctx.author.id != TARGET_USER_ID:
         await ctx.send("❌ You don't have permission to modify influence.")
         return
-
+    log_command(ctx.guild.id, str(ctx.author), "!influence", f"{faction} {'+' if amount >= 0 else ''}{amount}")
     world = load_world(ctx.guild.id)
 
     if faction not in FACTIONS:
@@ -260,7 +281,7 @@ async def move(ctx, player: str, *, faction: str):
     if ctx.author.id != TARGET_USER_ID:
         await ctx.send("❌ You don't have permission to move players.")
         return
-
+    log_command(ctx.guild.id, str(ctx.author), "!move", f"{player} → {faction}")
     world = load_world(ctx.guild.id)
 
     if player not in world["players"]:
