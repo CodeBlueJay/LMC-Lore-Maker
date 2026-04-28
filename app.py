@@ -195,15 +195,46 @@ st.divider()
 st.header("📜 Recent Lore")
 
 if world:
-    for guild_id, data in world.items():
-        lore = data.get("lore", [])[-5:]
+    import pandas as pd
+    import plotly.express as px
 
-        if lore:
-            for i, entry in enumerate(reversed(lore), 1):
-                with st.expander(f"📖 Entry {len(lore) - i + 1}"):
+    for guild_id, data in world.items():
+        lore = data.get("lore", [])
+        recent_lore = lore[-5:]
+
+        if recent_lore:
+            for i, entry in enumerate(reversed(recent_lore), 1):
+                with st.expander(f"📖 Entry {len(recent_lore) - i + 1}"):
                     st.text(entry)
         else:
             st.info("No lore entries yet")
+
+        # Timeline
+        logs = supabase.table("command_logs") \
+            .select("*") \
+            .eq("server_id", guild_id) \
+            .eq("command", "!lore") \
+            .order("timestamp", desc=False) \
+            .execute()
+
+        if logs.data:
+            df = pd.DataFrame(logs.data)
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            df["entry"] = [f"Entry {i+1}" for i in range(len(df))]
+
+            fig = px.scatter(
+                df,
+                x="timestamp",
+                y=[1] * len(df),
+                text="entry",
+                title="Lore Generation Timeline",
+                labels={"timestamp": "Time", "y": ""},
+                hover_data={"user_name": True, "timestamp": True, "y": False}
+            )
+            fig.update_traces(marker=dict(size=12, symbol="diamond"), textposition="top center")
+            fig.update_yaxes(visible=False)
+            fig.update_layout(height=250)
+            st.plotly_chart(fig, use_container_width=True)
 
 # =========================
 # ADMIN PANEL (Only if authenticated)
@@ -319,10 +350,15 @@ if st.session_state.authenticated:
 
     with admin_tab3:
         for guild_id in world:
+            import pandas as pd
+            import plotly.express as px
+    
             stats = get_stats(guild_id)
             logs = get_command_logs(guild_id)
             feed = get_activity_feed(guild_id)
-
+            players = world[guild_id].get("players", {})
+            factions_data = world[guild_id].get("factions", {})
+    
             st.subheader("📊 Stats")
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -334,27 +370,58 @@ if st.session_state.authenticated:
                 if counts:
                     top_player = max(counts, key=counts.get)
                     st.metric("Most Active", top_player, f"{counts[top_player]} msgs")
-
-            st.subheader("🏆 Most Active Players")
-            if counts:
-                sorted_players = sorted(counts.items(), key=lambda x: x[1], reverse=True)
-                st.dataframe([{"Player": p, "Messages": c} for p, c in sorted_players], use_container_width=True)
-
+    
+            # Influence line chart - all 4 factions
             st.subheader("📈 Faction Influence Over Time")
             history = stats.get("faction_history", [])
-            if history:
-                import pandas as pd
-                import plotly.express as px
+            if history and "The Council" in history[0]:
                 df = pd.DataFrame(history)
                 df["timestamp"] = pd.to_datetime(df["timestamp"])
                 df = df.sort_values("timestamp")
-                fig = px.line(df, x="timestamp", y="influence", color="faction",
-                              title="Faction Influence Over Time",
-                              labels={"timestamp": "Time", "influence": "Influence", "faction": "Faction"})
+                df_melted = df.melt(
+                    id_vars="timestamp",
+                    value_vars=["The Council", "The Lurkers", "The They Gang", "The Randos"],
+                    var_name="Faction",
+                    value_name="Influence"
+                )
+                fig = px.line(df_melted, x="timestamp", y="Influence", color="Faction",
+                              title="All Faction Influence Over Time")
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.info("No influence history yet.")
-
+                st.info("No influence history yet — data will appear as players chat.")
+    
+            # Pie chart - faction membership
+            st.subheader("🥧 Faction Membership Distribution")
+            faction_counts = {f: 0 for f in factions_data}
+            for p, f in players.items():
+                if f in faction_counts:
+                    faction_counts[f] += 1
+            if any(v > 0 for v in faction_counts.values()):
+                fig = px.pie(
+                    values=list(faction_counts.values()),
+                    names=list(faction_counts.keys()),
+                    title="Players per Faction"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No players yet.")
+    
+            # Bar chart - most active players
+            st.subheader("🏆 Most Active Players")
+            counts = stats.get("message_counts", {})
+            if counts:
+                sorted_players = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+                df_players = pd.DataFrame(sorted_players, columns=["Player", "Messages"])
+                fig = px.bar(df_players, x="Player", y="Messages",
+                             title="Messages Sent per Player",
+                             color="Messages", color_continuous_scale="blues")
+                fig.update_layout(xaxis_tickangle=-45)
+                st.plotly_chart(fig, use_container_width=True)
+                st.dataframe(df_players, use_container_width=True)
+            else:
+                st.info("No message data yet.")
+    
+            # Command logs
             st.subheader("📋 Command Logs")
             if logs:
                 st.dataframe(
@@ -363,7 +430,8 @@ if st.session_state.authenticated:
                 )
             else:
                 st.info("No commands logged yet.")
-
+    
+            # Activity feed
             st.subheader("📡 Activity Feed")
             if feed:
                 for entry in feed:
