@@ -230,7 +230,7 @@ async def admin(ctx, *, args: str):
         return
 
     world = load_world(ctx.guild.id)
-    if not is_admin(world, ctx.author.id)::
+    if not is_admin(world, ctx.author.id):
         await ctx.send("❌ You don't have permission to use this command.")
         return
 
