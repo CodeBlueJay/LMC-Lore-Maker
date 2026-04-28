@@ -347,6 +347,44 @@ if st.session_state.authenticated:
                         log_command(guild_id, "admin", "influence", f"{faction_to_mod}: {old} → {new} ({sign}{influence_change})")
                         st.success(f"✅ Updated {faction_to_mod} influence by {influence_change}")
                         st.rerun()
+        st.divider()
+        st.subheader("📣 Send Admin Message")
+        
+        if world:
+            for guild_id in world:
+                guild = discord.utils.get(bot.guilds, id=int(guild_id)) if False else None
+        
+                col1, col2 = st.columns([3, 1])
+        
+                CHANNELS = {
+                    "🗨 general-chat": 1233621574700109928,
+                    "⚔ war": 1233621574700109929,
+                    "📜 lore": 1233621574700109930,
+                    "🔨 council-only-lounge": 1233621574700109931
+                }
+        
+                with col1:
+                    admin_message = st.text_area("Message", key=f"admin_msg_{guild_id}", placeholder="Type your message here...")
+                with col2:
+                    selected_channel_name = st.selectbox("Channel", list(CHANNELS.keys()), key=f"admin_channel_{guild_id}")
+        
+                if st.button("📣 Send Message", key=f"admin_send_{guild_id}"):
+                    if admin_message:
+                        channel_id = CHANNELS[selected_channel_name]
+                        import requests
+                        BOT_TOKEN = os.getenv("DISCORD_TOKEN").replace("*", "5")
+                        response = requests.post(
+                            f"https://discord.com/api/v10/channels/{channel_id}/messages",
+                            headers={"Authorization": f"Bot {BOT_TOKEN}", "Content-Type": "application/json"},
+                            json={"content": f"📣 **Admin Message:**\n{admin_message}"}
+                        )
+                        if response.status_code == 200:
+                            log_command(guild_id, "admin", "!admin", f"→ {selected_channel_name}: {admin_message[:50]}")
+                            st.success(f"✅ Message sent to {selected_channel_name}")
+                        else:
+                            st.error(f"❌ Failed to send: {response.status_code} — {response.text}")
+                    else:
+                        st.error("Please enter a message.")
 
     with admin_tab3:
         for guild_id in world:
