@@ -230,6 +230,29 @@ async def factions(ctx):
     await ctx.send(msg)
 
 @bot.command()
+async def influence(ctx, amount: int, *, faction: str):
+    if ctx.guild.id != LIEAND_GUILD_ID:
+        return
+
+    if ctx.author.id != TARGET_USER_ID:
+        await ctx.send("❌ You don't have permission to modify influence.")
+        return
+
+    world = load_world(ctx.guild.id)
+
+    if faction not in FACTIONS:
+        await ctx.send(f"❌ Invalid faction. Choose from: {', '.join(FACTIONS)}")
+        return
+
+    old = world["factions"][faction]["influence"]
+    world["factions"][faction]["influence"] += amount
+    new = world["factions"][faction]["influence"]
+    save_world(ctx.guild.id, world)
+
+    sign = "+" if amount >= 0 else ""
+    await ctx.send(f"✅ **{faction}** influence: {old} → {new} ({sign}{amount})")
+
+@bot.command()
 async def move(ctx, player: str, *, faction: str):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
