@@ -228,8 +228,8 @@ if world:
                 y=[1] * len(df),
                 text="entry",
                 title="Lore Generation Timeline",
-                labels={"timestamp": "Time", "y": ""},
-                hover_data={"user_name": True, "timestamp": True, "y": False}
+                labels={"timestamp": "Time"},
+                hover_data={"user_name": True, "timestamp": True}
             )
             fig.update_traces(marker=dict(size=12, symbol="diamond"), textposition="top center")
             fig.update_yaxes(visible=False)
