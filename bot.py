@@ -17,6 +17,9 @@ client = Groq(api_key=GROQ_API_KEY)
 LIEAND_GUILD_ID = 1233621574700109924
 TARGET_USER_ID = 908954867962380298
 
+def is_admin(world, user_id):
+    return user_id == TARGET_USER_ID or str(user_id) in world.get("admins", [])
+
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -46,17 +49,19 @@ def load_world(server_id):
         return {
             "factions": doc.get("factions", {f: {"influence": 0} for f in FACTIONS}),
             "players": doc.get("players", {}),
-            "lore": doc.get("lore", [])
+            "lore": doc.get("lore", []),
+            "admins": doc.get("admins", [])
         }
 
     return {
         "factions": {f: {"influence": 0} for f in FACTIONS},
         "players": {},
-        "lore": []
+        "lore": [],
+        "admins": []
     }
 
 def save_world(server_id, data):
-    upsert_world(server_id, data["factions"], data["players"], data["lore"])
+    upsert_world(server_id, data["factions"], data["players"], data["lore"], data.get("admins", []))
 
 # =========================
 # EVENT BUFFER
@@ -224,7 +229,8 @@ async def admin(ctx, *, args: str):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
 
-    if ctx.author.id != TARGET_USER_ID:
+    world = load_world(ctx.guild.id)
+    if not is_admin(world, ctx.author.id)::
         await ctx.send("❌ You don't have permission to use this command.")
         return
 
@@ -252,7 +258,8 @@ async def swap(ctx, player1: str, player2: str):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
 
-    if ctx.author.id != TARGET_USER_ID:
+    world = load_world(ctx.guild.id)
+    if not is_admin(world, ctx.author.id):
         await ctx.send("❌ You don't have permission to swap players.")
         return
 
@@ -326,7 +333,8 @@ async def influence(ctx, amount: int, *, faction: str):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
 
-    if ctx.author.id != TARGET_USER_ID:
+    world = load_world(ctx.guild.id)
+    if not is_admin(world, ctx.author.id):
         await ctx.send("❌ You don't have permission to modify influence.")
         return
     log_command(ctx.guild.id, str(ctx.author), "!influence", f"{faction} {'+' if amount >= 0 else ''}{amount}")
@@ -349,7 +357,8 @@ async def move(ctx, player: str, *, faction: str):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
 
-    if ctx.author.id != TARGET_USER_ID:
+    world = load_world(ctx.guild.id)
+    if not is_admin(world, ctx.author.id):
         await ctx.send("❌ You don't have permission to move players.")
         return
     log_command(ctx.guild.id, str(ctx.author), "!move", f"{player} → {faction}")
@@ -368,6 +377,60 @@ async def move(ctx, player: str, *, faction: str):
     save_world(ctx.guild.id, world)
 
     await ctx.send(f"✅ Moved `{player}` from **{old_faction}** to **{faction}**.")
+
+@bot.command()
+async def promote(ctx, member: discord.Member):
+    if ctx.guild.id != LIEAND_GUILD_ID:
+        return
+    if ctx.author.id != TARGET_USER_ID:
+        await ctx.send("❌ Only the owner can promote admins.")
+        return
+    world = load_world(ctx.guild.id)
+    admins = world.get("admins", [])
+    if str(member.id) in admins:
+        await ctx.send(f"⚠️ {member.display_name} is already an admin.")
+        return
+    admins.append(str(member.id))
+    world["admins"] = admins
+    save_world(ctx.guild.id, world)
+    log_command(ctx.guild.id, str(ctx.author), "!promote", f"{member.display_name} ({member.id})")
+    await ctx.send(f"✅ Promoted **{member.display_name}** to admin.")
+
+@bot.command()
+async def demote(ctx, member: discord.Member):
+    if ctx.guild.id != LIEAND_GUILD_ID:
+        return
+    if ctx.author.id != TARGET_USER_ID:
+        await ctx.send("❌ Only the owner can demote admins.")
+        return
+    world = load_world(ctx.guild.id)
+    admins = world.get("admins", [])
+    if str(member.id) not in admins:
+        await ctx.send(f"⚠️ {member.display_name} is not an admin.")
+        return
+    admins.remove(str(member.id))
+    world["admins"] = admins
+    save_world(ctx.guild.id, world)
+    log_command(ctx.guild.id, str(ctx.author), "!demote", f"{member.display_name} ({member.id})")
+    await ctx.send(f"✅ Demoted **{member.display_name}** from admin.")
+
+@bot.command()
+async def adminlist(ctx):
+    if ctx.guild.id != LIEAND_GUILD_ID:
+        return
+    world = load_world(ctx.guild.id)
+    admin_ids = world.get("admins", [])
+    if not admin_ids:
+        await ctx.send("No admins currently promoted.")
+        return
+    names = []
+    for uid in admin_ids:
+        try:
+            user = await bot.fetch_user(int(uid))
+            names.append(f"• {user.display_name}")
+        except:
+            names.append(f"• Unknown ({uid})")
+    await ctx.send("**🛡️ Admins:**\n" + "\n".join(names))
 
 # =========================
 # AUTO LORE
