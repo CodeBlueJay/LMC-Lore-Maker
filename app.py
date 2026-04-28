@@ -256,6 +256,25 @@ if st.session_state.authenticated:
                 
                 if player_data:
                     st.dataframe(player_data, use_container_width=True)
+        st.divider()
+        st.subheader("➕ Add New Player")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            new_player_name = st.text_input("Player Username", key=f"new_player_{guild_id}")
+        with col2:
+            new_player_faction = st.selectbox("Assign to Faction", factions, key=f"new_player_faction_{guild_id}")
+        with col3:
+            if st.button("Add Player", key=f"add_player_btn_{guild_id}"):
+                if new_player_name:
+                    if new_player_name in data["players"]:
+                        st.warning(f"⚠️ {new_player_name} already exists in {data['players'][new_player_name]}")
+                    else:
+                        data["players"][new_player_name] = new_player_faction
+                        save_world(world)
+                        st.success(f"✅ Added {new_player_name} to {new_player_faction}")
+                        st.rerun()
+                else:
+                    st.error("Please enter a player name.")
     
     with admin_tab2:
         st.subheader("Modify Faction Influence")
