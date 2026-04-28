@@ -213,7 +213,7 @@ if st.session_state.authenticated:
     st.divider()
     st.header("🛠️ Admin Panel")
     
-    admin_tab1, admin_tab2 = st.tabs(["👥 Manage Players", "📊 Admin Dashboard"])
+    admin_tab1, admin_tab2, admin_tab3 = st.tabs(["👥 Manage Players", "📊 Admin Dashboard", "📈 Stats & Logs"])
     
     with admin_tab1:
         st.subheader("Move Players Between Factions")
@@ -286,3 +286,51 @@ if st.session_state.authenticated:
                         save_world(world)
                         st.success(f"✅ Updated {faction_to_mod} influence by {influence_change}")
                         st.rerun()
+    with admin_tab3:
+        from database import get_stats, get_command_logs, get_activity_feed
+    
+        for guild_id in world:
+            stats = get_stats(guild_id)
+            logs = get_command_logs(guild_id)
+            feed = get_activity_feed(guild_id)
+    
+            # Stats
+            st.subheader("📊 Stats")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Messages", stats["total_messages"])
+            with col2:
+                st.metric("War Events", stats["war_events"])
+            with col3:
+                counts = stats.get("message_counts", {})
+                if counts:
+                    top_player = max(counts, key=counts.get)
+                    st.metric("Most Active", top_player, f"{counts[top_player]} msgs")
+    
+            # Most active players table
+            st.subheader("🏆 Most Active Players")
+            if counts:
+                sorted_players = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+                st.dataframe(
+                    [{"Player": p, "Messages": c} for p, c in sorted_players],
+                    use_container_width=True
+                )
+    
+            # Command logs
+            st.subheader("📋 Command Logs")
+            if logs:
+                st.dataframe(
+                    [{"Time": l["timestamp"], "User": l["user_name"], "Command": l["command"], "Details": l["details"]} for l in logs],
+                    use_container_width=True
+                )
+            else:
+                st.info("No commands logged yet.")
+    
+            # Activity feed
+            st.subheader("📡 Activity Feed")
+            if feed:
+                for entry in feed:
+                    icon = "🔥" if entry["event_type"] == "WAR_EVENT" else "💬"
+                    st.write(f"{icon} **{entry['user_name']}** ({entry['faction']}) in {entry['territory']}: {entry['content'][:100]}")
+            else:
+                st.info("No activity yet.")
