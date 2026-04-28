@@ -376,7 +376,8 @@ if st.session_state.authenticated:
             history = stats.get("faction_history", [])
             if history and "The Council" in history[0]:
                 df = pd.DataFrame(history)
-                df["timestamp"] = pd.to_datetime(df["timestamp"])
+                df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True, errors="coerce")
+                df = df.dropna(subset=["timestamp"])
                 df = df.sort_values("timestamp")
                 df_melted = df.melt(
                     id_vars="timestamp",
