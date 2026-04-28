@@ -1,10 +1,11 @@
 import streamlit as st
-import json
 import os
 import subprocess
 import sys
+from dotenv import load_dotenv
+load_dotenv()
+from database import get_world, upsert_world, supabase
 
-WORLD_FILE = "world.json"
 BOT_PID_FILE = "bot.pid"
 
 # =========================
@@ -55,14 +56,19 @@ st.set_page_config(page_title="Moon Castle", layout="wide")
 # =========================
 
 def load_world():
-    if os.path.exists(WORLD_FILE):
-        with open(WORLD_FILE, "r") as f:
-            return json.load(f)
-    return {}
+    res = supabase.table("worlds").select("*").execute()
+    data = {}
+    for doc in res.data:
+        data[doc["server_id"]] = {
+            "factions": doc.get("factions", {}),
+            "players": doc.get("players", {}),
+            "lore": doc.get("lore", [])
+        }
+    return data
 
 def save_world(world):
-    with open(WORLD_FILE, "w") as f:
-        json.dump(world, f, indent=2)
+    for server_id, data in world.items():
+        upsert_world(server_id, data["factions"], data["players"], data["lore"])
 
 # =========================
 # AUTHENTICATION STATE
