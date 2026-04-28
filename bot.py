@@ -218,9 +218,14 @@ async def factions(ctx):
     world = load_world(ctx.guild.id)
 
     msg = "**⚔️ Factions:**\n"
-    for f, data in world["factions"].items():
+    for f in world["factions"]:
         members = [p for p, faction in world["players"].items() if faction == f]
-        msg += f"\n**{f}** — {data['influence']} ⚡ — {len(members)} members"
+        msg += f"\n**{f}:**\n"
+        if members:
+            msg += "\n".join(f"  • {m}" for m in sorted(members))
+        else:
+            msg += "  *No members*"
+        msg += "\n"
 
     await ctx.send(msg)
 
