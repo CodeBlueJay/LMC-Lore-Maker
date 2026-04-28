@@ -220,6 +220,34 @@ async def lore(ctx):
     await send_lore_dm(lore)
 
 @bot.command()
+async def admin(ctx, *, args: str):
+    if ctx.guild.id != LIEAND_GUILD_ID:
+        return
+
+    if ctx.author.id != TARGET_USER_ID:
+        await ctx.send("❌ You don't have permission to use this command.")
+        return
+
+    try:
+        parts = args.rsplit(" ", 1)
+        message = parts[0]
+        channel_mention = parts[1]
+
+        channel_id = int(channel_mention.strip("<#>"))
+        channel = bot.get_channel(channel_id)
+
+        if not channel:
+            await ctx.send("❌ Channel not found.")
+            return
+
+        await channel.send(f"📣 **Admin Message:**\n{message}")
+        await ctx.message.delete()
+        log_command(ctx.guild.id, str(ctx.author), "!admin", f"→ #{channel.name}: {message[:50]}")
+
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}\nUsage: `!admin <message> <#channel>`")
+
+@bot.command()
 async def swap(ctx, player1: str, player2: str):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
