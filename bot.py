@@ -148,8 +148,10 @@ async def on_message(message):
     # Track faction influence history
     history = stats["faction_history"]
     history.append({
-        "faction": faction,
-        "influence": world["factions"][faction]["influence"],
+        "The Council": world["factions"]["The Council"]["influence"],
+        "The Lurkers": world["factions"]["The Lurkers"]["influence"],
+        "The They Gang": world["factions"]["The They Gang"]["influence"],
+        "The Randos": world["factions"]["The Randos"]["influence"],
         "timestamp": str(message.created_at)
     })
     if len(history) > 500:
