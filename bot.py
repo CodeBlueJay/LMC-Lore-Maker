@@ -210,6 +210,27 @@ async def world(ctx):
 
     await ctx.send(msg)
 
+@bot.command()
+async def move(ctx, player: str, *, faction: str):
+    if ctx.guild.id != LIEAND_GUILD_ID:
+        return
+
+    world = load_world(ctx.guild.id)
+
+    if player not in world["players"]:
+        await ctx.send(f"❌ Player `{player}` not found.")
+        return
+
+    if faction not in FACTIONS:
+        await ctx.send(f"❌ Invalid faction. Choose from: {', '.join(FACTIONS)}")
+        return
+
+    old_faction = world["players"][player]
+    world["players"][player] = faction
+    save_world(ctx.guild.id, world)
+
+    await ctx.send(f"✅ Moved `{player}` from **{old_faction}** to **{faction}**.")
+
 # =========================
 # AUTO LORE
 # =========================
