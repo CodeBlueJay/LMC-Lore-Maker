@@ -268,21 +268,30 @@ async def world(ctx):
 async def factions(ctx):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
+
     log_command(ctx.guild.id, str(ctx.author), "!factions")
     world = load_world(ctx.guild.id)
 
-    msg = "**⚔️ Factions:**\n"
-    for f in world["factions"]:
-        members = [p for p, faction in world["players"].items() if faction == f]
-        msg += f"\n**{f}:**\n"
-        if members:
-            msg += "\n".join(f"  • {m}" for m in sorted(members))
-        else:
-            msg += "  *No members*"
-        msg += "\n"
+    FACTION_ICONS = {
+        "The Council": "👑",
+        "The Lurkers": "🕵️",
+        "The They Gang": "⚡",
+        "The Randos": "🎲"
+    }
 
+    msg = "```\n⚔️  FACTIONS OF NULLREACH  ⚔️\n"
+    msg += "━" * 32 + "\n"
+
+    for f, data in world["factions"].items():
+        members = sorted([p for p, faction in world["players"].items() if faction == f])
+        icon = FACTION_ICONS.get(f, "🏴")
+        members_str = ", ".join(members) if members else "No members"
+        msg += f"{icon} {f} ({len(members)})\n{members_str}\n"
+        msg += "─" * 32 + "\n"
+
+    msg += "```"
     await ctx.send(msg)
-
+    
 @bot.command()
 async def influence(ctx, amount: int, *, faction: str):
     if ctx.guild.id != LIEAND_GUILD_ID:
