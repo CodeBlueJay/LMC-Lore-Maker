@@ -279,7 +279,7 @@ async def factions(ctx):
         "The Randos": "🎲"
     }
 
-    msg = "```\n⚔️  FACTIONS OF NULLREACH  ⚔️\n"
+    msg = "\n⚔️  FACTIONS OF LMC  ⚔️\n"
     msg += "━" * 32 + "\n"
 
     for f, data in world["factions"].items():
@@ -289,7 +289,6 @@ async def factions(ctx):
         msg += f"{icon} {f} ({len(members)})\n{members_str}\n"
         msg += "─" * 32 + "\n"
 
-    msg += "```"
     await ctx.send(msg)
     
 @bot.command()
