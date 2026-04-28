@@ -10,12 +10,13 @@ def get_world(server_id):
     res = supabase.table("worlds").select("*").eq("server_id", str(server_id)).execute()
     return res.data[0] if res.data else None
 
-def upsert_world(server_id, factions, players, lore):
+def upsert_world(server_id, factions, players, lore, admins=None):
     supabase.table("worlds").upsert({
         "server_id": str(server_id),
         "factions": factions,
         "players": players,
-        "lore": lore
+        "lore": lore,
+        "admins": admins or []
     }).execute()
 
 def get_stats(server_id):
