@@ -246,7 +246,7 @@ async def admin(ctx, *, args: str):
             await ctx.send("❌ Channel not found.")
             return
 
-        await channel.send(f"📣 **Admin Message:**\n{message}")
+        await channel.send(f"**Admin Message:** {message}")
         await ctx.message.delete()
         log_command(ctx.guild.id, str(ctx.author), "!admin", f"→ #{channel.name}: {message[:50]}")
 
