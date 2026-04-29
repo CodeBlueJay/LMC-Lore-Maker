@@ -348,7 +348,7 @@ if st.session_state.authenticated:
                         st.success(f"✅ Updated {faction_to_mod} influence by {influence_change}")
                         st.rerun()
         st.divider()
-        if st.button("🔄 Refresh Data"):
+        if st.button("🔄 Refresh Data", key="refresh_admin_tab2"):
             st.rerun()
         st.divider()
         st.subheader("📣 Send Admin Message")
@@ -377,7 +377,7 @@ if st.session_state.authenticated:
                         response = requests.post(
                             f"https://discord.com/api/v10/channels/{channel_id}/messages",
                             headers={"Authorization": f"Bot {BOT_TOKEN}", "Content-Type": "application/json"},
-                            json={"content": f"📣 **Admin Message:**\n{admin_message}"}
+                            json={"content": f"**Admin Message:** {admin_message}"}
                         )
                         if response.status_code == 200:
                             log_command(guild_id, "admin", "!admin", f"→ {selected_channel_name}: {admin_message[:50]}")
