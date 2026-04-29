@@ -288,20 +288,6 @@ async def swap(ctx, player1: str, player2: str):
     await ctx.send(f"✅ Swapped **{player1}** ({faction1}) ↔ **{player2}** ({faction2})")
 
 @bot.command()
-async def world(ctx):
-    if ctx.guild.id != LIEAND_GUILD_ID:
-        return
-    log_command(ctx.guild.id, str(ctx.author), "!world")
-    world = load_world(ctx.guild.id)
-
-    msg = "\n".join(
-        f"{f}: {data['influence']} influence"
-        for f, data in world["factions"].items()
-    )
-
-    await ctx.send(msg)
-
-@bot.command()
 async def factions(ctx):
     if ctx.guild.id != LIEAND_GUILD_ID:
         return
@@ -322,9 +308,35 @@ async def factions(ctx):
     for f, data in world["factions"].items():
         members = sorted([p for p, faction in world["players"].items() if faction == f])
         icon = FACTION_ICONS.get(f, "🏴")
-        members_str = ", ".join(members) if members else "No members"
+        members_str = ", ".join(f"`{m}`" for m in members) if members else "*No members*"
         msg += f"{icon} {f} ({len(members)})\n{members_str}\n"
         msg += "─" * 32 + "\n"
+
+    await ctx.send(msg)
+
+
+@bot.command()
+async def world(ctx):
+    if ctx.guild.id != LIEAND_GUILD_ID:
+        return
+    log_command(ctx.guild.id, str(ctx.author), "!world")
+    w = load_world(ctx.guild.id)
+
+    FACTION_ICONS = {
+        "The Council": "👑",
+        "The Lurkers": "🕵️",
+        "The They Gang": "⚡",
+        "The Randos": "🎲"
+    }
+
+    sorted_factions = sorted(w["factions"].items(), key=lambda x: x[1]["influence"], reverse=True)
+    numbers = ["🥇", "🥈", "🥉", "4️⃣"]
+
+    msg = "🏰  **LMC INFLUENCE**  🏰\n"
+    msg += "━" * 28 + "\n"
+    for i, (f, data) in enumerate(sorted_factions):
+        icon = FACTION_ICONS.get(f, "🏴")
+        msg += f"{numbers[i]} {icon} **{f}** — `{data['influence']}` influence ⚡\n"
 
     await ctx.send(msg)
     
