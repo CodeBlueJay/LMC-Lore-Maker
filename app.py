@@ -245,7 +245,7 @@ if st.session_state.authenticated:
     st.header("🛠️ Admin Panel")
     from database import get_stats, get_command_logs, get_activity_feed, log_command
 
-    admin_tab1, admin_tab2, admin_tab3 = st.tabs(["👥 Manage Players", "📊 Manage Influences", "📈 Stats & Logs"])
+    admin_tab1, admin_tab2, admin_tab3 = st.tabs(["👥 Manage Players", "📊 Influence and Communication", "📈 Stats & Logs"])
 
     with admin_tab1:
         if world:
@@ -348,10 +348,14 @@ if st.session_state.authenticated:
                         st.success(f"✅ Updated {faction_to_mod} influence by {influence_change}")
                         st.rerun()
         st.divider()
+        if st.button("🔄 Refresh Data", key="refresh_admin_tab2"):
+            st.rerun()
+        st.divider()
         st.subheader("📣 Send Admin Message")
         
         if world:
             for guild_id in world:
+                feed = get_activity_feed(guild_id)
                 guild = discord.utils.get(bot.guilds, id=int(guild_id)) if False else None
         
                 col1, col2 = st.columns([3, 1])
@@ -373,7 +377,7 @@ if st.session_state.authenticated:
                         response = requests.post(
                             f"https://discord.com/api/v10/channels/{channel_id}/messages",
                             headers={"Authorization": f"Bot {BOT_TOKEN}", "Content-Type": "application/json"},
-                            json={"content": f"📣 **Admin Message:**\n{admin_message}"}
+                            json={"content": f"**Admin Message:** {admin_message}"}
                         )
                         if response.status_code == 200:
                             log_command(guild_id, "admin", "!admin", f"→ {selected_channel_name}: {admin_message[:50]}")
@@ -382,6 +386,15 @@ if st.session_state.authenticated:
                             st.error(f"❌ Failed to send: {response.status_code} — {response.text}")
                     else:
                         st.error("Please enter a message.")
+                # Activity feed - move this to admin_tab2 after the send message section
+                st.divider()
+                st.subheader("📡 Activity Feed")
+                if feed:
+                    for entry in feed:
+                        icon = "🔥" if entry["event_type"] == "WAR_EVENT" else "💬"
+                        st.write(f"{icon} **{entry['user_name']}** ({entry['faction']}) in {entry['territory']}: {entry['content'][:100]}")
+                else:
+                    st.info("No activity yet.")
 
     with admin_tab3:
         for guild_id in world:
@@ -466,12 +479,3 @@ if st.session_state.authenticated:
                 )
             else:
                 st.info("No commands logged yet.")
-    
-            # Activity feed
-            st.subheader("📡 Activity Feed")
-            if feed:
-                for entry in feed:
-                    icon = "🔥" if entry["event_type"] == "WAR_EVENT" else "💬"
-                    st.write(f"{icon} **{entry['user_name']}** ({entry['faction']}) in {entry['territory']}: {entry['content'][:100]}")
-            else:
-                st.info("No activity yet.")
