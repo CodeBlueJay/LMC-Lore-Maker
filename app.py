@@ -245,7 +245,7 @@ if st.session_state.authenticated:
     st.header("🛠️ Admin Panel")
     from database import get_stats, get_command_logs, get_activity_feed, log_command
 
-    admin_tab1, admin_tab2, admin_tab3 = st.tabs(["👥 Manage Players", "📊 Manage Influences", "📈 Stats & Logs"])
+    admin_tab1, admin_tab2, admin_tab3 = st.tabs(["👥 Manage Players", "📊 Influence and Communication", "📈 Stats & Logs"])
 
     with admin_tab1:
         if world:
