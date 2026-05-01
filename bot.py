@@ -1,4 +1,6 @@
 import os
+import io
+import matplotlib.pyplot as plt
 import time
 import discord
 from discord.ext import commands, tasks
@@ -286,6 +288,37 @@ async def swap(ctx, player1: str, player2: str):
 
     log_command(ctx.guild.id, str(ctx.author), "!swap", f"{player1} ↔ {player2}")
     await ctx.send(f"✅ Swapped **{player1}** ({faction1}) ↔ **{player2}** ({faction2})")
+
+@bot.command()
+async def msgboard(ctx):
+    if ctx.guild.id != LIEAND_GUILD_ID:
+        return
+
+    log_command(ctx.guild.id, str(ctx.author), "!msgboard")
+    stats = get_stats(ctx.guild.id)
+    counts = stats.get("message_counts", {})
+
+    if not counts:
+        await ctx.send("No messages recorded yet.")
+        return
+
+    sorted_players = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    players = [p for p, _ in sorted_players]
+    messages = [c for _, c in sorted_players]
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    bars = ax.barh(players[::-1], messages[::-1], color="steelblue")
+    ax.bar_label(bars, padding=3)
+    ax.set_xlabel("Messages")
+    ax.set_title("Top 10 Most Active Players")
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    plt.close()
+
+    await ctx.send(file=discord.File(buf, filename="leaderboard.png"))
 
 @bot.command()
 async def factions(ctx):
