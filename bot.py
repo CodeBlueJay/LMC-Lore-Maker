@@ -479,11 +479,31 @@ async def adminlist(ctx):
 
 @bot.command(name="slime")
 async def slime(ctx, member: discord.Member):
-    await ctx.send(f"{ctx.author.mention} has slimed {member.mention} out!")
+    await ctx.send(
+        f"{ctx.author.mention} has slimed {member.mention} out!",
+        allowed_mentions=discord.AllowedMentions(users=False)
+    )
 
 @bot.command(name="love")
 async def love(ctx, member: discord.Member):
-    await ctx.send(f"{ctx.author.mention} has shown {member.mention} love!")
+    await ctx.send(
+        f"{ctx.author.mention} has shown {member.mention} love!",
+        allowed_mentions=discord.AllowedMentions(users=False)
+    )
+
+@bot.command(name="kirk")
+async def slime(ctx, member: discord.Member):
+    await ctx.send(
+        f"{ctx.author.mention} has kirked {member.mention}!",
+        allowed_mentions=discord.AllowedMentions(users=False)
+    )
+
+@bot.command(name="kill")
+async def love(ctx, member: discord.Member):
+    await ctx.send(
+        f"{ctx.author.mention} has issued judgement.\n**Public execution** for {member.mention} is *imminent*.",
+        allowed_mentions=discord.AllowedMentions(users=False)
+    )
 
 # =========================
 # AUTO LORE
