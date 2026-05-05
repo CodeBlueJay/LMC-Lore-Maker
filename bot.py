@@ -25,7 +25,7 @@ def is_admin(world, user_id):
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix=["!", "?"], intents=intents)
 
 FACTIONS = [
     "The Council",
@@ -476,6 +476,14 @@ async def adminlist(ctx):
         except:
             names.append(f"• Unknown ({uid})")
     await ctx.send("**🛡️ Admins:**\n" + "\n".join(names))
+
+@bot.command(name="slime")
+async def slime(ctx, member: discord.Member):
+    await ctx.send(f"{ctx.author.mention} has slimed {member.mention} out!")
+
+@bot.command(name="love")
+async def love(ctx, member: discord.Member):
+    await ctx.send(f"{ctx.author.mention} has shown {member.mention} love!")
 
 # =========================
 # AUTO LORE
